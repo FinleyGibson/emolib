@@ -36,19 +36,19 @@ def _rotate_point(point, angle):
 
 def _label_rot_params(i, N, d):
     if 0 < i < N/4:
-        rotation = 270+(d*i)%90
+        rotation = 270+round(d*i)%90
         align1 = 'right'
         align2 = 'bottom'
     elif i < N/2:
-        rotation = (d*i)%90
+        rotation = round(d*i)%90
         align1 = 'right'
         align2 = 'top'
-    elif i < N*0.75:
-        rotation = 270 + (d*i)%90
+    elif i <= N*0.75:
+        rotation = 270 + round(d*i)%90
         align1 = 'left'
         align2 = 'top'
     else:
-        rotation = (d*i)%90
+        rotation = round(d*i)%90
         align1 = 'left'
         align2 = 'bottom'
         
@@ -85,8 +85,8 @@ def _draw_edge(s, t, pos, louv):
 
 
 def _edge_params(w1, w2, _positive, _negative, _ambivalent, colz):
-    
-    if w1 in _positive and w1 in _positive:
+        
+    if w1 in _positive and w2 in _positive:
         return colz['positive'], 3, 1
     if w1 in _negative and w2 in _negative:
         return colz['negative'], 3, 1
@@ -95,6 +95,11 @@ def _edge_params(w1, w2, _positive, _negative, _ambivalent, colz):
         return 'purple', 3, 1
     if w1 in _positive and w2 in _negative:
         return 'purple', 3, 1
+    
+    if w1 in _positive or w2 in _positive:
+        return colz['semipositive'], 1, -1
+    if w1 in _negative or w2 in _negative:
+        return colz['seminegative'], 1, -1
     
     return 'lightgrey', 1, -1
 
@@ -114,7 +119,10 @@ def draw_formamentis_circle_layout(fmn, highlight = [], language = 'english', ax
     
     # Define color-blind palette
     colz = {'positive': (26/256, 133/256, 255/256),
-            'negative': (212/256, 17/256, 89/256)}
+            'negative': (255/256, 25/256, 25/256), #(212/256, 17/256, 89/256),
+            'semantic': (34/256, 139/256, 34/256),
+            'semipositive': (117/256, 152/256, 191/256),
+            'seminegative': (200/256, 50/256, 50/256)} #(196/256, 128/256, 153/256)}
     
     # Get positive or negative valences
     _positive, _negative, _ambivalent = _valences(language)
@@ -123,8 +131,15 @@ def draw_formamentis_circle_layout(fmn, highlight = [], language = 'english', ax
         _, ax = plt.subplots(figsize=(16, 16)) 
     
     
+    if len(fmn.edges[0]) > 2:
+        edge_type = [edge[2] for edge in fmn.edges]
+        edgelist = [(a, b) for a, b, c in fmn.edges]
+    else:
+        edge_type = ['syntactic']*len(fmn.edges)
+        edgelist = fmn.edges
+        
     ## Graph and clusters
-    G = nx.Graph(fmn.edges)
+    G = nx.Graph(edgelist)
     louv = commlouv.best_partition(G)
     louv2 = {comm: [key for key, val in louv.items() if val == comm] for comm in set(louv.values())}
     
@@ -140,12 +155,12 @@ def draw_formamentis_circle_layout(fmn, highlight = [], language = 'english', ax
     
     N = len(fmn.vertices) + len(louv2) # N nodes require N endpoints + one space per cluster
     d = 360 / N
-    
-    
+        
     pos = {}
     i = 0
     comm = 0
     counter = 0
+    
     for _ in range(len(louv)):  
     
         # get position and space clusters
@@ -166,12 +181,14 @@ def draw_formamentis_circle_layout(fmn, highlight = [], language = 'english', ax
         # customization of label
         fz = 16/(N**(3/5)) * 10 + degrees[v]
         
+        
         if v in _positive:
             color = colz['positive']
         elif v in _negative:
             color = colz['negative']
         else:
             color = '#030303'
+        
         
         if v in highlight:
             ax.text(x,y, ' {} '.format(v), rotation = rotation, weight = 'bold',
@@ -189,24 +206,26 @@ def draw_formamentis_circle_layout(fmn, highlight = [], language = 'english', ax
     lws = []
     zors = []
     
-    for s, t in fmn.edges:
+    j = 0
+    for s, t in edgelist:
         alpha, patch = _draw_edge(s, t, pos, louv)
         alphas.append(alpha)
         patches.append(patch)
         
         color, linewidth, zorder = _edge_params(s, t, _positive, _negative, _ambivalent, colz)
-    
+        
+        # Patch: if the edge is semantic we should color it as semantic
+        if edge_type[j] == 'semantic':
+            color = colz['semantic']
+        
         colors.append(color)
         lws.append(linewidth)
         zors.append(zorder)
         
-    print("ALPHAS: ", type(alphas[0]), len(alphas), alphas)
-    print([type(i) for i in alphas])
-    print("lw: ", type(lws[0]),  len(lws), lws)
+        j += 1
         
     patches = PatchCollection(patches, facecolor = 'none', linewidth = lws, edgecolor = colors, 
-                                  match_original=True, alpha=alphas, zorder = 1, linewidths = lws)
-
+                                  match_original=True, alpha = alphas, zorder = 1, linewidths = lws)
     ax.add_collection(patches)
     
     
