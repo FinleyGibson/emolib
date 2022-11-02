@@ -20,6 +20,7 @@ class EmoScores:
         
         # Basic imports
         self.language = language
+        print("LANGUAGE: ", language)
         self._emotion_lexicon = _load_dictionary(language)
         self._tagger = _load_spacy(language)
         self._stemmer = None
