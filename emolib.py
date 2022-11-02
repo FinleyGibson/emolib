@@ -192,6 +192,8 @@ class EmoScores:
                             keepwords = [],
                             stopwords = [],
                             max_distance = 3,
+                            semantic_enrichment = 'synonyms',
+                            multiplex = False,
                             with_type = False
                          ):
         """
@@ -218,10 +220,14 @@ class EmoScores:
         *max_distance*:
             An integer, by default 2. Links in the formamentis network will be established from each word to each neighbor within a distance
             defined by max_distance.
+        
+        *semantic_enrichment*:
+            A str or a list of str. If 'synonyms', will be added semantic arcs between synonyms into the network. If 'hyperonyms', will be
+            added semantic arcs between hyperonyms and hyponyms. Also ['synonyms', 'hyperonyms'] is accepted.
             
-        *with_type*:
-            A boolean. If True, each edge will come with an attribute that tells if the edge is syntactic or semantic. 
-            Default is False
+        *multiplex*:
+            A bool: whether to return different edgelist for different kinds of edges (syntactic, synonyms, hyperonyms) or not. Default is False.
+           
             
         Returns:
         ----------
@@ -240,7 +246,8 @@ class EmoScores:
                                      stopwords = stopwords,
                                      antonyms = self._antonyms,
                                      max_distance = max_distance,
-                                     with_type = with_type,
+                                     semantic_enrichment = semantic_enrichment,
+                                     multiplex = multiplex,
                                      idiomatic_tokens = self._idiomatic_tokens
                                      )
         
@@ -248,7 +255,7 @@ class EmoScores:
     
     
     
-    def draw_formamentis(self, fmn, layout = 'edge_bundling', highlight = [], ax = None):
+    def draw_formamentis(self, fmn, layout = 'edge_bundling', highlight = [], thickness = 1, ax = None):
         """
         Represents a Formamentis Network in either a circular or force-based layout.
             
@@ -263,6 +270,9 @@ class EmoScores:
             
         *highlight*:
             A list of the words to highlight in the network.
+            
+        *thickness*:
+            A numeric. How thick must lines be drawn. Default is 1.
         
         *ax*:
             A matplotlib axes to draw the network on. If none is provided, a new one will be created.
@@ -270,9 +280,9 @@ class EmoScores:
         """
         
         if layout == 'force_layout':
-            dff.draw_formamentis_force_layout(fmn.edges, highlight = highlight, language = self.language, ax = ax)
+            dff.draw_formamentis_force_layout(fmn.edges, highlight = highlight, language = self.language, thickness = thickness, ax = ax)
         elif layout == 'edge_bundling':
-            dfb.draw_formamentis_circle_layout(fmn, highlight = highlight, language = self.language, ax = ax)
+            dfb.draw_formamentis_circle_layout(fmn, highlight = highlight, language = self.language, thickness = thickness, ax = ax)
             
             
             
@@ -312,7 +322,8 @@ class EmoScores:
                                 target_word = None,
                                 keepwords = [],
                                 stopwords = [],
-                                max_distance = 3, 
+                                max_distance = 3,
+                                semantic_enrichment = [], 
                                 reject_range = (-1.96, 1.96)):
         
         """
@@ -343,6 +354,11 @@ class EmoScores:
         *max_distance*:
             An integer, by default 2. Links in the formamentis network will be established from each word to each neighbor within a distance
             defined by max_distance.
+        
+        *semantic_enrichment*:
+            A str or a list of str. If 'synonyms', will be added semantic arcs between synonyms into the network. If 'hyperonyms', will be
+            added semantic arcs between hyperonyms and hyponyms. Also ['synonyms', 'hyperonyms'] is accepted.
+            
             
         *reject_range*:
             A threshold for significance of zscores. A zscore higher (lower) than 1.96 (-1.96) means that an emotion is 
@@ -353,8 +369,9 @@ class EmoScores:
                                        target_word = target_word,
                                        keepwords = keepwords,
                                        stopwords = stopwords,
+                                       semantic_enrichment = semantic_enrichment,
                                        max_distance = max_distance)
-    
+        
         zs = self.zscores(fmn)
         self.draw_plutchik(zs, reject_range = (-1.96, 1.96))
     
